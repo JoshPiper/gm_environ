@@ -1,15 +1,10 @@
 #![feature(c_unwind)]
 
-use std::borrow::Borrow;
-
 #[cfg(feature = "gmcl")]
 use gmod::gmcl::override_stdout;
-use gmod::lua::{State, LuaInt};
+use gmod::lua::{State};
 use gmod::lua_function;
-use sysinfo::{System, SystemExt};
-use lazy_static::initialize;
 
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate gmod;
 
 static MOD_NAME: &str = "environ";
@@ -19,40 +14,43 @@ macro_rules! err {
     ($arg:literal, $err:literal) => {format!("{} was unable to {}: {:?}", MOD_NAME, $arg, $err)};
 }
 
-lazy_static! {
-    static ref SYSTEM: System = System::new_all();
-    static ref CORES: usize = match SYSTEM.physical_core_count(){
-        Some(cores) => cores,
-        None => 0
-    };
-    static ref TOTAL_MEMORY: u64 = SYSTEM.total_memory();
-    static ref TOTAL_SWAP: u64 = SYSTEM.total_swap();
-    static ref SYS_NAME: String = match SYSTEM.name(){
-        Some(name) => name,
-        None => "".to_string()
-    };
-    static ref OS_LONG_VERSION: String = match SYSTEM.long_os_version(){
-        Some(name) => name,
-        None => "".to_string()
-    };
-    static ref OS_VERSION: String = match SYSTEM.os_version(){
-        Some(name) => name,
-        None => "".to_string()
-    };
-    static ref KERNEL_VERSION: String = match SYSTEM.kernel_version(){
-        Some(name) => name,
-        None => "".to_string()
-    };
-    static ref HOST_NAME: String = match SYSTEM.host_name(){
-        Some(name) => name,
-        None => "".to_string()
-    };
+unsafe fn error(lua: State, err: &str){
+    lua.get_global(lua_string!("error"));
+    lua.push_string(err);
+    lua.call(1, 0);
 }
 
-unsafe fn error(lua: State, err: String){
-    lua.get_global(lua_string!("error"));
-    lua.push_string(err.borrow());
-    lua.call(1, 0);
+unsafe fn arg_err(lua: State, pos: i16, exp: &str, real: &str){
+    error(lua, format!("{}: Bad Argument in position #{}, expected {} got {}", MOD_NAME, pos, exp, real).as_str());
+}
+
+#[lua_function]
+unsafe fn index(lua: State) -> i32 {
+    let arg_type = lua.get_type(-1);
+    if (arg_type != "string"){
+        arg_err(lua, 1, "string", arg_type);
+    }
+
+    let arg = lua.get_string(-1);
+    let environ_key: &str = match arg {
+        None => {
+            error(lua, err!("fetch argument string").as_str());
+            ""
+        },
+        Some(arg_str) => {
+            &*arg_str
+        }
+    };
+
+    println!("{}: {}", arg_type, environ_key);
+
+    0
+}
+
+#[lua_function]
+unsafe fn newindex(lua: State) -> i32 {
+    error(lua, "Environment Variables cannot be set.");
+    0
 }
 
 #[gmod13_open]
@@ -62,6 +60,11 @@ unsafe fn gmod13_open(lua: State) -> i32 {
             // _G.sysinfo.$name
             lua.push_function($name);
             lua.set_field(-2, concat!(stringify!($name), "\0").as_ptr() as *const i8);
+        };
+        ($func:ident, $name:literal) => {
+            // _G.sysinfo.$name
+            lua.push_function($func);
+            lua.set_field(-2, lua_string!($name));
         }
     }
 
@@ -70,7 +73,17 @@ unsafe fn gmod13_open(lua: State) -> i32 {
     }
 
     // Create _G.environ
-    lua.create_table(0, 0);
+    lua.create_table(0, 1);
+    export_lua_function!(newindex, "__ignore");
+
+    // Create _G.environ metatable
+    lua.create_table(0, 1);
+    export_lua_function!(index, "__index");
+
+    // Set and pop the metatable.
+    lua.set_metatable(-2);
+
+    // Set and pop the environ table in the global environment.
     lua.set_global(lua_string!("environ"));
 
     0
