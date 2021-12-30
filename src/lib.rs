@@ -19,10 +19,6 @@ unsafe fn error(lua: State, err: &str){
     lua.error(err);
 }
 
-// unsafe fn arg_err(lua: State, pos: i16, exp: &str, real: &str){
-//     error(lua, format!("{}: Bad Argument in position #{}, expected {} got {}", MOD_NAME, pos, exp, real).as_str());
-// }
-
 #[lua_function]
 unsafe fn index(lua: State) -> i32 {
     let str_idx = lua.check_string(2);
