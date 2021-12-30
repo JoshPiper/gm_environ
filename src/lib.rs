@@ -15,9 +15,7 @@ macro_rules! err {
 }
 
 unsafe fn error(lua: State, err: &str){
-    lua.get_global(lua_string!("error"));
-    lua.push_string(err);
-    lua.call(1, 0);
+    lua.error(err);
 }
 
 unsafe fn arg_err(lua: State, pos: i16, exp: &str, real: &str){
