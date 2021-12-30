@@ -1,0 +1,17 @@
+[package]
+name = "gm_environ"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+name = "gm_environ"
+crate-type = ["cdylib"]
+
+[features]
+gmcl = []
+
+[dependencies]
+gmod = {version = "10.2.1", features = ["gmcl"], default-features = false}
+sysinfo = "*"
+gethostname = "*"
+lazy_static = "*"
