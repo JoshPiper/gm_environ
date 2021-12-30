@@ -10,6 +10,11 @@ use gmod::lua_function;
 
 static MOD_NAME: &str = "environ";
 
+#[cfg(not(windows))]
+const PATH_SEP: &str = ":";
+#[cfg(windows)]
+const PATH_SEP: &str = ";";
+
 unsafe fn error(lua: State, err: &str){
     lua.error(err);
 }
