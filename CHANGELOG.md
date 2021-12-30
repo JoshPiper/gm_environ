@@ -1,3 +1,12 @@
+## [0.2.1](https://github.com/JoshPiper/gm_environ/compare/v0.2.0...v0.2.1) (2021-12-30)
+
+
+### Bug Fixes
+
+* Fixes environ vs sysinfo in build script. ([92ac0f7](https://github.com/JoshPiper/gm_environ/commit/92ac0f7c3d2858643219f4a0377626b672d4c64e))
+
+
+
 # [0.2.0](https://github.com/JoshPiper/gm_environ/compare/v0.1.0...v0.2.0) (2021-12-30)
 
 
