@@ -30,13 +30,13 @@ unsafe fn index(lua: State) -> i32 {
     }
 
     let arg = lua.get_string(-1);
-    let environ_key: &str = match arg {
+    let environ_key: str = match arg {
         None => {
             error(lua, err!("fetch argument string").as_str());
             ""
         },
         Some(arg_str) => {
-            &*arg_str
+            *arg_str
         }
     };
 
