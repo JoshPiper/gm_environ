@@ -146,12 +146,12 @@ unsafe fn gmod13_open(lua: State) -> i32 {
     }
 
     // Create _G.environ
-    lua.create_table(0, 1);
+    lua.create_table(0, 2);
     export_lua_function!(get_path);
     export_lua_function!(get_csv);
 
     // Create _G.environ metatable
-    lua.create_table(0, 1);
+    lua.create_table(0, 2);
     export_lua_function!(index, "__index");
     export_lua_function!(newindex, "__newindex");
 
