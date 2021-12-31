@@ -7,6 +7,7 @@ use gmod::lua::{State};
 use gmod::lua_function;
 
 #[macro_use] extern crate gmod;
+#[macro_use] extern crate debug_print;
 
 static MOD_NAME: &str = "environ";
 
@@ -25,10 +26,10 @@ unsafe fn index(lua: State) -> i32 {
     let env_var = env::var(str_idx.as_ref());
 
     if env_var.is_err() {
-        println!("failed to read: {}", env_var.err().unwrap());
+        debug_println!("failed to read: {}", env_var.err().unwrap());
         lua.push_nil();
     } else {
-        println!("{} -> {}: {}", MOD_NAME, str_idx, env_var.clone().unwrap());
+        debug_println!("{} -> {}: {}", MOD_NAME, str_idx, env_var.clone().unwrap());
         lua.push_string(env_var.unwrap().as_str())
     }
 
@@ -53,7 +54,7 @@ unsafe fn get_path(lua: State) -> i32 {
             }
         },
         Err(err) => {
-            println!("{} -> {}: {}", MOD_NAME, "PATH", err);
+            debug_println!("{} -> {}: {}", MOD_NAME, "PATH", err);
             lua.new_table();
         }
     }

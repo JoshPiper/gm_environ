@@ -12,3 +12,4 @@ gmcl = []
 
 [dependencies]
 gmod = {version = "10.2.2", features = ["gmcl"], default-features = false}
+debug_print = "1.0.0"
