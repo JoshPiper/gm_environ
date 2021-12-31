@@ -23,7 +23,6 @@ name = "gm_environ"
 version = "0.2.2"
 dependencies = [
  "gmod",
- "lazy_static",
 ]
 
 [[package]]
