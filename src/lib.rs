@@ -51,13 +51,15 @@ macro_rules! requested_index {
 unsafe fn index(lua: State) -> i32 {
     let str_idx = lua.check_string(2);
     let env_var = env::var(str_idx.as_ref());
-
-    if env_var.is_err() {
-        debug_println!("failed to read: {}", env_var.err().unwrap());
-        lua.push_nil();
-    } else {
-        debug_println!("{} -> {}: {}", MOD_NAME, str_idx, env_var.clone().unwrap());
-        lua.push_string(env_var.unwrap().as_str())
+    match env_var {
+        Ok(val) => {
+            debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
+            lua.push_string(val.as_str())
+        }
+        Err(err) => {
+            debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
+            lua.push_nil();
+        }
     }
 
     1
