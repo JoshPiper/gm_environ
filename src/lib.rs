@@ -49,7 +49,7 @@ macro_rules! requested_index {
 
 #[lua_function]
 unsafe fn index(lua: State) -> i32 {
-    let str_idx = lua.check_string(2);
+    let str_idx = requested_index!(lua);
     let env_var = env::var(str_idx.as_ref());
     match env_var {
         Ok(val) => {
