@@ -92,6 +92,35 @@ unsafe fn get_path(lua: State) -> i32 {
 }
 
 #[lua_function]
+unsafe fn get_csv(lua: State) -> i32 {
+    let str_idx = requested_index!(lua);
+    let env_var = env::var(str_idx.as_ref());
+    match env_var {
+        Ok(val) => {
+            debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
+            let val = val.as_str();
+            let split = val.split(",").collect::<Vec<&str>>();
+            lua.create_table(split.len() as i32, 0);
+            let mut i = 0;
+            for s in split {
+                let s = s.trim();
+                if s != "" {
+                    i += 1;
+                    lua.push_string(s);
+                    lua.raw_seti(-2, i);
+                }
+            }
+        }
+        Err(err) => {
+            debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
+            lua.new_table();
+        }
+    }
+
+    1
+}
+
+#[lua_function]
 unsafe fn newindex(lua: State) -> i32 {
     error(lua, "Environment Variables cannot be set.");
     0
@@ -119,6 +148,7 @@ unsafe fn gmod13_open(lua: State) -> i32 {
     // Create _G.environ
     lua.create_table(0, 1);
     export_lua_function!(get_path);
+    export_lua_function!(get_csv);
 
     // Create _G.environ metatable
     lua.create_table(0, 1);
