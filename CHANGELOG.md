@@ -1,3 +1,12 @@
+## [0.2.2](https://github.com/JoshPiper/gm_environ/compare/v0.2.1...v0.2.2) (2021-12-31)
+
+
+### Bug Fixes
+
+* Implement build fixes from gm_sysinfo. ([a50c9d4](https://github.com/JoshPiper/gm_environ/commit/a50c9d427a458e7e023600f80afc5b89fbef1069))
+
+
+
 ## [0.2.1](https://github.com/JoshPiper/gm_environ/compare/v0.2.0...v0.2.1) (2021-12-30)
 
 
