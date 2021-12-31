@@ -75,6 +75,7 @@ unsafe fn get_path(lua: State) -> i32 {
             lua.create_table(split.len() as i32, 0);
             let mut i = 0;
             for s in split {
+                let s = s.trim();
                 if s != "" {
                     i += 1;
                     lua.push_string(s);
