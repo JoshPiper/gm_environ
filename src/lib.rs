@@ -20,6 +20,33 @@ unsafe fn error<S: AsRef<str>>(lua: State, err: S){
     lua.error(err);
 }
 
+/// Get the requested string index, agnostic of method call type.
+///
+/// If we're called as a colon method:
+/// `environ:whatever("env_key")` -> `environ.whatever(environ, "env_key")` -> `(table, string)`
+///
+/// Whereas, if we're called as a dot method:
+/// `environ.whatever("env_key")` -> `string`
+///
+/// I don't care which is done, so we support both.
+/// However, documentation will only show dot methoding.
+macro_rules! requested_index {
+    ( $lua:ident ) => {
+        {
+            let t = $lua.get_type(1);
+
+            let str_key = if t == "table" {
+                debug_println!("fetched as a colon method");
+                $lua.check_string(2)
+            } else {
+                debug_println!("fetched as a dot method");
+                $lua.check_string(1)
+            };
+            str_key
+        }
+    }
+}
+
 #[lua_function]
 unsafe fn index(lua: State) -> i32 {
     let str_idx = lua.check_string(2);
