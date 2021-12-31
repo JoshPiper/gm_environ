@@ -27,6 +27,7 @@ jobs:
           version-file: "./Cargo.toml"
           version-path: "package.version"
           fallback-version: "0.1.0"
+          pre-commit: "build/pre-commit.js"
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
@@ -52,6 +53,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.check-changes.outputs.tag }}
       - name: Fetch Toolchain Information
         run: node build/get-toolchain.js
         id: toolchain
@@ -74,7 +77,7 @@ jobs:
         with:
           use-cross: false
           command: build
-          args: --release ${{ steps.toolchain.outputs.features }} --target ${{ steps.toolchain.outputs.toolchain }}
+          args: --release ${{ steps.toolchain.outputs.features }} --target ${{ steps.toolchain.outputs.toolchain }} --locked
       - name: Strip Debug Symbols
         run: strip target/${{ steps.toolchain.outputs.toolchain }}/release/libgm_environ.so
       - name: Rename Outputs
@@ -101,6 +104,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.check-changes.outputs.tag }}
       - name: Fetch Toolchain Information
         run: node build/get-toolchain.js
         id: toolchain
@@ -120,7 +125,7 @@ jobs:
         with:
           use-cross: false
           command: build
-          args: --release ${{ steps.toolchain.outputs.features }} --target ${{ steps.toolchain.outputs.toolchain }}
+          args: --release ${{ steps.toolchain.outputs.features }} --target ${{ steps.toolchain.outputs.toolchain }} --locked
       - name: Rename Outputs
         run: mv target/${{ steps.toolchain.outputs.toolchain }}/release/gm_environ.dll  ${{ steps.toolchain.outputs.file }}
       - name: Upload Release Asset
@@ -130,4 +135,3 @@ jobs:
         with:
           tag_name: ${{ needs.check-changes.outputs.tag }}
           files: ${{ steps.toolchain.outputs.file }}
-
