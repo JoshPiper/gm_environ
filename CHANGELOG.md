@@ -1,3 +1,23 @@
+# [0.3.0](https://github.com/JoshPiper/gm_environ/compare/v0.2.2...v0.3.0) (2021-12-31)
+
+
+### Bug Fixes
+
+* Allow error to operate on any type of string. ([89b91f5](https://github.com/JoshPiper/gm_environ/commit/89b91f5960cebfbd3ce9763605619cd52a6f05ad))
+* ensure that parts of PATH are trimmed before being sent. ([5bb2973](https://github.com/JoshPiper/gm_environ/commit/5bb2973dc330fa8b04e14358783155f6271d9c7d))
+* Increase default memory for both environ and environ.__metatable. ([594d7e9](https://github.com/JoshPiper/gm_environ/commit/594d7e914478fc8d84db0805d89dbe16b052dc35))
+* Replace println! with debug_println! ([12b3a2b](https://github.com/JoshPiper/gm_environ/commit/12b3a2b3df0ece3e9ec8c37e61655c78ae55c1a5))
+
+
+### Features
+
+* add environ.get_csv, for comma seperated environment vars. ([557be0f](https://github.com/JoshPiper/gm_environ/commit/557be0ffcae811f01e7a788d1d2f2dd72751302f))
+* add newindex to the metatable to prevent setting random values on the environ table. ([d2d1b00](https://github.com/JoshPiper/gm_environ/commit/d2d1b00a21104f6c822fb1027f3d203f30cb5b71))
+* add requested_index macro, to abstract out env key fetching. ([d7eae99](https://github.com/JoshPiper/gm_environ/commit/d7eae99c97998794c45ef1336f0b2ce7598542d2))
+* use requested_index! macro for __index. ([5d314be](https://github.com/JoshPiper/gm_environ/commit/5d314be5d2e5c68128ce859fc18e1bff2af63b6a))
+
+
+
 ## [0.2.2](https://github.com/JoshPiper/gm_environ/compare/v0.2.1...v0.2.2) (2021-12-31)
 
 
