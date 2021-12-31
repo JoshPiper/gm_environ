@@ -15,7 +15,7 @@ const PATH_SEP: &str = ":";
 #[cfg(windows)]
 const PATH_SEP: &str = ";";
 
-unsafe fn error(lua: State, err: &str){
+unsafe fn error<S: AsRef<str>>(lua: State, err: S){
     lua.error(err);
 }
 
