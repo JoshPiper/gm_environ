@@ -168,4 +168,3 @@ unsafe fn gmod13_open(lua: State) -> i32 {
 fn gmod13_close(_lua: State) -> i32 {
     0
 }
-
