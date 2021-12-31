@@ -93,6 +93,7 @@ unsafe fn gmod13_open(lua: State) -> i32 {
     // Create _G.environ metatable
     lua.create_table(0, 1);
     export_lua_function!(index, "__index");
+    export_lua_function!(newindex, "__newindex");
 
     // Set and pop the metatable.
     lua.set_metatable(-2);
