@@ -30,6 +30,7 @@ version = "0.2.2"
 dependencies = [
  "debug_print",
  "gmod",
+ "lazy_static",
 ]
 
 [[package]]

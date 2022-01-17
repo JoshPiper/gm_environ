@@ -1,14 +1,17 @@
 #![feature(c_unwind)]
 
+use std::collections::HashMap;
 use std::env;
 #[cfg(feature = "gmcl")]
 use gmod::gmcl::override_stdout;
 use gmod::lua::{State};
 use gmod::lua_function;
+use lazy_static::lazy_static;
 
 #[macro_use] extern crate gmod;
 #[macro_use] extern crate debug_print;
 
+type RustLuaFunction = unsafe extern "C-unwind" fn(State) -> i32;
 static MOD_NAME: &str = "environ";
 
 #[cfg(not(windows))]
@@ -16,8 +19,24 @@ const PATH_SEP: &str = ":";
 #[cfg(windows)]
 const PATH_SEP: &str = ";";
 
-unsafe fn error<S: AsRef<str>>(lua: State, err: S){
-    lua.error(err);
+lazy_static! {
+    static ref FUNC_MAP: HashMap<&'static str, RustLuaFunction> = {
+        let mut m = HashMap::new();
+
+        macro_rules! export {
+            ($name:ident) => {
+                m.insert(stringify!($name), $name as RustLuaFunction);
+            };
+            ($func:ident, $name:literal) => {
+                m.insert($name, $func as RustLuaFunction);
+            }
+        }
+
+        export!(get_path);
+        export!(get_csv);
+
+        m
+    };
 }
 
 /// Get the requested string index, agnostic of method call type.
@@ -34,14 +53,16 @@ macro_rules! requested_index {
     ( $lua:ident ) => {
         {
             let t = $lua.get_type(1);
+            debug_println!("{}", t);
 
-            let str_key = if t == "table" {
+            let str_key = if (t == "table" || t == "UserData") {
                 debug_println!("fetched as a colon method");
                 $lua.check_string(2)
             } else {
                 debug_println!("fetched as a dot method");
                 $lua.check_string(1)
             };
+
             str_key
         }
     }
@@ -50,19 +71,31 @@ macro_rules! requested_index {
 #[lua_function]
 unsafe fn index(lua: State) -> i32 {
     let str_idx = requested_index!(lua);
-    let env_var = env::var(str_idx.as_ref());
-    match env_var {
-        Ok(val) => {
-            debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
-            lua.push_string(val.as_str())
-        }
-        Err(err) => {
-            debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
-            lua.push_nil();
-        }
-    }
+    debug_println!("__index({})", str_idx);
 
-    1
+    let rtn: i32 = match FUNC_MAP.get(&*str_idx) {
+        Some(func) => {
+            lua.push_function(*func);
+            1
+        }
+        None => {
+            let env_var = env::var(str_idx.as_ref());
+            match env_var {
+                Ok(val) => {
+                    debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
+                    lua.push_string(val.as_str())
+                }
+                Err(err) => {
+                    debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
+                    lua.push_nil();
+                }
+            }
+
+            1
+        }
+    };
+
+    rtn
 }
 
 #[lua_function]
@@ -122,21 +155,23 @@ unsafe fn get_csv(lua: State) -> i32 {
 
 #[lua_function]
 unsafe fn newindex(lua: State) -> i32 {
-    error(lua, "Environment Variables cannot be set.");
-    0
+    lua.error("Environment Variables cannot be set.");
 }
 
 #[gmod13_open]
 unsafe fn gmod13_open(lua: State) -> i32 {
-    macro_rules! export_lua_function {
+
+    macro_rules! export {
         ($name:ident) => {
-            // _G.environ.$name
             lua.push_function($name);
             lua.set_field(-2, concat!(stringify!($name), "\0").as_ptr() as *const i8);
         };
         ($func:ident, $name:literal) => {
-            // _G.environ.$name
             lua.push_function($func);
+            lua.set_field(-2, lua_string!($name));
+        };
+        ($value:literal, $name:literal) => {
+            lua.push_string($value);
             lua.set_field(-2, lua_string!($name));
         }
     }
@@ -145,18 +180,14 @@ unsafe fn gmod13_open(lua: State) -> i32 {
         override_stdout();
     }
 
-    // Create _G.environ
-    lua.create_table(0, 2);
-    export_lua_function!(get_path);
-    export_lua_function!(get_csv);
-
     // Create _G.environ metatable
-    lua.create_table(0, 2);
-    export_lua_function!(index, "__index");
-    export_lua_function!(newindex, "__newindex");
+    lua.new_metatable(lua_string!("environ"));
+    export!(index, "__index");
+    export!(newindex, "__newindex");
+    export!("environ", "__name");
 
     // Set and pop the metatable.
-    lua.set_metatable(-2);
+    lua.new_userdata(0, Some(-1));
 
     // Set and pop the environ table in the global environment.
     lua.set_global(lua_string!("environ"));
