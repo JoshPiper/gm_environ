@@ -1,3 +1,12 @@
+# [0.4.0](https://github.com/JoshPiper/gm_environ/compare/v0.3.0...v0.4.0) (2022-02-02)
+
+
+### Features
+
+* Switch to userdata instead of table. ([#1](https://github.com/JoshPiper/gm_environ/issues/1)) ([45125f8](https://github.com/JoshPiper/gm_environ/commit/45125f89543599c16e4331811dbf8fde5adb58f0))
+
+
+
 # [0.3.0](https://github.com/JoshPiper/gm_environ/compare/v0.2.2...v0.3.0) (2021-12-31)
 
 
@@ -50,15 +59,6 @@
 ### Features
 
 * add path seperators. ([78670c0](https://github.com/JoshPiper/gm_environ/commit/78670c00c5f6678bb245a65771a1ffd325ee55c5))
-
-
-
-# [0.1.0](https://github.com/JoshPiper/gm_environ/compare/debd60ba289d98bdee6c37baae4a2b227bbe638f...v0.1.0) (2021-12-30)
-
-
-### Features
-
-* update to latest wip. ([debd60b](https://github.com/JoshPiper/gm_environ/commit/debd60ba289d98bdee6c37baae4a2b227bbe638f))
 
 
 
