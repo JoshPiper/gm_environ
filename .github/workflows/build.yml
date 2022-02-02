@@ -79,9 +79,9 @@ jobs:
           command: build
           args: --release ${{ steps.toolchain.outputs.features }} --target ${{ steps.toolchain.outputs.toolchain }} --locked
       - name: Strip Debug Symbols
-        run: strip target/${{ steps.toolchain.outputs.toolchain }}/release/libgm_environ.so
+        run: strip target/${{ steps.toolchain.outputs.toolchain }}/release/libenviron.so
       - name: Rename Outputs
-        run: mv target/${{ steps.toolchain.outputs.toolchain }}/release/libgm_environ.so  ${{ steps.toolchain.outputs.file }}
+        run: mv target/${{ steps.toolchain.outputs.toolchain }}/release/libenviron.so  ${{ steps.toolchain.outputs.file }}
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         env:
@@ -127,7 +127,7 @@ jobs:
           command: build
           args: --release ${{ steps.toolchain.outputs.features }} --target ${{ steps.toolchain.outputs.toolchain }} --locked
       - name: Rename Outputs
-        run: mv target/${{ steps.toolchain.outputs.toolchain }}/release/gm_environ.dll  ${{ steps.toolchain.outputs.file }}
+        run: mv target/${{ steps.toolchain.outputs.toolchain }}/release/environ.dll  ${{ steps.toolchain.outputs.file }}
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         env:
