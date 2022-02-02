@@ -80,11 +80,11 @@ unsafe fn index(lua: State) -> i32 {
             let env_var = env::var(str_idx.as_ref());
             match env_var {
                 Ok(val) => {
-                    debug_println!("{} -> {}: {}", env!("CARGO_BIN_NAME"), str_idx, val);
+                    debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), str_idx, val);
                     lua.push_string(val.as_str())
                 }
                 Err(err) => {
-                    debug_println!("{} -> {} failed: {}", env!("CARGO_BIN_NAME"), str_idx, err);
+                    debug_println!("{} -> {} failed: {}", env!("CARGO_CRATE_NAME"), str_idx, err);
                     lua.push_nil();
                 }
             }
@@ -119,7 +119,7 @@ unsafe fn get_path(lua: State) -> i32 {
             push_table(lua, split);
         },
         Err(err) => {
-            debug_println!("{} -> {}: {}", env!("CARGO_BIN_NAME"), "PATH", err);
+            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), "PATH", err);
             lua.new_table();
         }
     }
@@ -133,13 +133,13 @@ unsafe fn get_csv(lua: State) -> i32 {
     let env_var = env::var(str_idx.as_ref());
     match env_var {
         Ok(val) => {
-            debug_println!("{} -> {}: {}", env!("CARGO_BIN_NAME"), str_idx, val);
+            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), str_idx, val);
             let val = val.as_str();
             let split = val.split(",").collect::<Vec<&str>>();
             push_table(lua, split);
         }
         Err(err) => {
-            debug_println!("{} -> {} failed: {}", env!("CARGO_BIN_NAME"), str_idx, err);
+            debug_println!("{} -> {} failed: {}", env!("CARGO_CRATE_NAME"), str_idx, err);
             lua.new_table();
         }
     }
