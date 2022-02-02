@@ -98,6 +98,19 @@ unsafe fn index(lua: State) -> i32 {
     rtn
 }
 
+unsafe fn push_table(lua: State, split: Vec<&str>){
+    lua.create_table(split.len() as i32, 0);
+    let mut i = 0;
+    for s in split {
+        let s = s.trim();
+        if s != "" {
+            i += 1;
+            lua.push_string(s);
+            lua.raw_seti(-2, i);
+        }
+    }
+}
+
 #[lua_function]
 unsafe fn get_path(lua: State) -> i32 {
     let env_var = env::var("PATH");
@@ -105,22 +118,14 @@ unsafe fn get_path(lua: State) -> i32 {
         Ok(val) => {
             let val = val.as_str();
             let split = val.split(PATH_SEP).collect::<Vec<&str>>();
-            lua.create_table(split.len() as i32, 0);
-            let mut i = 0;
-            for s in split {
-                let s = s.trim();
-                if s != "" {
-                    i += 1;
-                    lua.push_string(s);
-                    lua.raw_seti(-2, i);
-                }
-            }
+            push_table(lua, split);
         },
         Err(err) => {
             debug_println!("{} -> {}: {}", MOD_NAME, "PATH", err);
             lua.new_table();
         }
     }
+
     1
 }
 
@@ -133,16 +138,7 @@ unsafe fn get_csv(lua: State) -> i32 {
             debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
             let val = val.as_str();
             let split = val.split(",").collect::<Vec<&str>>();
-            lua.create_table(split.len() as i32, 0);
-            let mut i = 0;
-            for s in split {
-                let s = s.trim();
-                if s != "" {
-                    i += 1;
-                    lua.push_string(s);
-                    lua.raw_seti(-2, i);
-                }
-            }
+            push_table(lua, split);
         }
         Err(err) => {
             debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
@@ -160,7 +156,6 @@ unsafe fn newindex(lua: State) -> i32 {
 
 #[gmod13_open]
 unsafe fn gmod13_open(lua: State) -> i32 {
-
     macro_rules! export {
         ($name:ident) => {
             lua.push_function($name);
