@@ -4,7 +4,7 @@ version = "0.2.2"
 edition = "2021"
 
 [lib]
-name = "gm_environ"
+name = "environ"
 crate-type = ["cdylib"]
 
 [features]
