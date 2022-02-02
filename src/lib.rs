@@ -11,14 +11,12 @@ use lazy_static::lazy_static;
 #[macro_use] extern crate gmod;
 #[macro_use] extern crate debug_print;
 
-type RustLuaFunction = unsafe extern "C-unwind" fn(State) -> i32;
-static MOD_NAME: &str = "environ";
-
 #[cfg(not(windows))]
 const PATH_SEP: &str = ":";
 #[cfg(windows)]
 const PATH_SEP: &str = ";";
 
+type RustLuaFunction = unsafe extern "C-unwind" fn(State) -> i32;
 lazy_static! {
     static ref FUNC_MAP: HashMap<&'static str, RustLuaFunction> = {
         let mut m = HashMap::new();
@@ -82,11 +80,11 @@ unsafe fn index(lua: State) -> i32 {
             let env_var = env::var(str_idx.as_ref());
             match env_var {
                 Ok(val) => {
-                    debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
+                    debug_println!("{} -> {}: {}", env!("CARGO_BIN_NAME"), str_idx, val);
                     lua.push_string(val.as_str())
                 }
                 Err(err) => {
-                    debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
+                    debug_println!("{} -> {} failed: {}", env!("CARGO_BIN_NAME"), str_idx, err);
                     lua.push_nil();
                 }
             }
@@ -121,7 +119,7 @@ unsafe fn get_path(lua: State) -> i32 {
             push_table(lua, split);
         },
         Err(err) => {
-            debug_println!("{} -> {}: {}", MOD_NAME, "PATH", err);
+            debug_println!("{} -> {}: {}", env!("CARGO_BIN_NAME"), "PATH", err);
             lua.new_table();
         }
     }
@@ -135,13 +133,13 @@ unsafe fn get_csv(lua: State) -> i32 {
     let env_var = env::var(str_idx.as_ref());
     match env_var {
         Ok(val) => {
-            debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
+            debug_println!("{} -> {}: {}", env!("CARGO_BIN_NAME"), str_idx, val);
             let val = val.as_str();
             let split = val.split(",").collect::<Vec<&str>>();
             push_table(lua, split);
         }
         Err(err) => {
-            debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, err);
+            debug_println!("{} -> {} failed: {}", env!("CARGO_BIN_NAME"), str_idx, err);
             lua.new_table();
         }
     }
