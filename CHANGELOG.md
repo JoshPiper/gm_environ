@@ -1,3 +1,12 @@
+## [0.4.1](https://github.com/JoshPiper/gm_environ/compare/v0.4.0...v0.4.1) (2025-06-08)
+
+
+### Bug Fixes
+
+* update gmod crate to 17. ([e0b4055](https://github.com/JoshPiper/gm_environ/commit/e0b40558e3b94cd9a0a3e958d7434ddc3b0c6448))
+
+
+
 # [0.4.0](https://github.com/JoshPiper/gm_environ/compare/v0.3.0...v0.4.0) (2022-02-02)
 
 
@@ -42,23 +51,6 @@
 ### Bug Fixes
 
 * Fixes environ vs sysinfo in build script. ([92ac0f7](https://github.com/JoshPiper/gm_environ/commit/92ac0f7c3d2858643219f4a0377626b672d4c64e))
-
-
-
-# [0.2.0](https://github.com/JoshPiper/gm_environ/compare/v0.1.0...v0.2.0) (2021-12-30)
-
-
-### Bug Fixes
-
-* call LuaState:error directly. ([17ecfbd](https://github.com/JoshPiper/gm_environ/commit/17ecfbd0211b6615bb6778c6b995bc617e406c22))
-* fetch all commits. ([e4c68d8](https://github.com/JoshPiper/gm_environ/commit/e4c68d8d5674ce06690dd1ff75dfdd82f695754a))
-* update to latest gmod version to fix crashing issue. ([cbf539a](https://github.com/JoshPiper/gm_environ/commit/cbf539a05a7adda3f073978e0cdc25cd33b25796))
-* we're no longer borrowing. ([376264a](https://github.com/JoshPiper/gm_environ/commit/376264af3c9dfd41b4e913f70aae5d558ca584f6))
-
-
-### Features
-
-* add path seperators. ([78670c0](https://github.com/JoshPiper/gm_environ/commit/78670c00c5f6678bb245a65771a1ffd325ee55c5))
 
 
 
