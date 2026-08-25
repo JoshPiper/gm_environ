@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Existing release tag to (re)publish assets for, e.g. v0.5.0.
+          Rebuilds and republishes without waiting for a new version --
+          the recovery path when package-assets fails after the tag and
+          binaries already exist (its own steps are individually safe to
+          repeat: --clobber on upload, draft=false is idempotent).
+        required: true
+        type: string
+
+concurrency:
+  group: release-plz-${{ github.ref }}
+
+jobs:
+  # Maintains a rolling release PR from conventional commits. Nothing releases
+  # until that PR is merged, so "not ready" is simply "don't merge it yet".
+  release-pr:
+    name: Open release PR
+    if: github.event_name == 'push' && github.repository_owner == 'JoshPiper'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install toolchain
+        run: rustup toolchain install
+
+      - name: Run release-plz
+        uses: MarcoIeni/release-plz-action@v0.5
+        with:
+          command: release-pr
+        env:
+          # With the default GITHUB_TOKEN, CI will not run on the release PR
+          # (GitHub suppresses recursive workflow triggers). Add a RELEASE_PLZ_TOKEN
+          # PAT secret to get CI runs on release PRs.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+
+  # On merge of the release PR: tags the commit and creates a draft GitHub
+  # release. On ordinary pushes this is a no-op (releases_created = false).
+  release:
+    name: Tag and create release
+    if: github.event_name == 'push' && github.repository_owner == 'JoshPiper'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      releases_created: ${{ steps.release-plz.outputs.releases_created }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install toolchain
+        run: rustup toolchain install
+
+      - name: Run release-plz
+        id: release-plz
+        uses: MarcoIeni/release-plz-action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+
+  # Building in the same run avoids the GitHub quirk where tags pushed with
+  # GITHUB_TOKEN don't trigger tag-push workflows.
+  build-assets:
+    name: Build release assets
+    needs: release
+    if: always() && (needs.release.outputs.releases_created == 'true' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.sha }}
+
+  package-assets:
+    name: Provenance, SBOM, and publish
+    needs: [release, build-assets]
+    if: always() && needs.build-assets.result == 'success' && (needs.release.outputs.releases_created == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload release assets, undraft the release
+      id-token: write # sign the provenance attestation (OIDC)
+      attestations: write # publish the attestation to the repo
+      actions: read # download artifacts produced by build-assets
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.sha }}
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v$(grep -m1 '^version' Cargo.toml | cut -d '"' -f 2)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install toolchain
+        run: rustup toolchain install
+
+      - name: Install cargo-cyclonedx
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-cyclonedx
+
+      - name: Generate SBOM
+        run: cargo cyclonedx --format json
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Assemble release assets
+        run: |
+          # cargo-cyclonedx names its output after the package, not "bom.json"
+          # and not the lib target name (which is "environ" here) -- verified
+          # against the actual installed binary, whose own docs say otherwise.
+          mv gm_environ.cdx.json "assets/gm_environ-${{ steps.tag.outputs.tag }}.cdx.json"
+          (cd assets && sha256sum -- * > SHA256SUMS)
+
+      # Signed SLSA build provenance, queryable later with:
+      #   gh attestation verify <file> -R JoshPiper/gm_environ
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: assets/*
+
+      - name: Upload assets and undraft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ steps.tag.outputs.tag }}" assets/* --clobber
+          gh release edit "${{ steps.tag.outputs.tag }}" --draft=false

@@ -1,15 +1,15 @@
-#![feature(c_unwind)]
-
-use std::collections::HashMap;
-use std::env;
 #[cfg(feature = "gmcl")]
 use gmod::gmcl::override_stdout;
-use gmod::lua::{State};
+use gmod::lua::State;
 use gmod::lua_function;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::env;
 
-#[macro_use] extern crate gmod;
-#[macro_use] extern crate debug_print;
+#[macro_use]
+extern crate gmod;
+#[macro_use]
+extern crate debug_print;
 
 #[cfg(not(windows))]
 const PATH_SEP: &str = ":";
@@ -27,7 +27,7 @@ lazy_static! {
             };
             ($func:ident, $name:literal) => {
                 m.insert($name, $func as RustLuaFunction);
-            }
+            };
         }
 
         export!(get_path);
@@ -40,7 +40,7 @@ lazy_static! {
 /// Get the requested string index, agnostic of method call type.
 ///
 /// If we're called as a colon method:
-/// `environ:whatever("env_key")` -> `environ.whatever(environ, "env_key")` -> `(table, string)`
+/// `environ:whatever("env_key")` -> `environ.whatever(environ, "env_key")` -> `(userdata, string)`
 ///
 /// Whereas, if we're called as a dot method:
 /// `environ.whatever("env_key")` -> `string`
@@ -48,22 +48,26 @@ lazy_static! {
 /// I don't care which is done, so we support both.
 /// However, documentation will only show dot methoding.
 macro_rules! requested_index {
-    ( $lua:ident ) => {
-        {
-            let t = $lua.get_type(1);
-            debug_println!("{}", t);
-
-            let str_key = if (t == "table" || t == "UserData") {
-                debug_println!("fetched as a colon method");
-                $lua.check_string(2)
-            } else {
-                debug_println!("fetched as a dot method");
-                $lua.check_string(1)
-            };
-
-            str_key
+    ( $lua:ident ) => {{
+        // Keyed off the raw type tag rather than State::get_type. That
+        // returns lua_typename's string, which is unreliable here on two
+        // counts: its spelling for a userdata differs between stock LuaJIT
+        // ("userdata") and GMod's build, and calling it in GMod leaves a
+        // value behind on the stack (Facepunch/garrysmod-issues#5134) --
+        // which is why gmod-rs's own lua_type_name carries a workaround
+        // that get_type does not.
+        //
+        // A string in slot 1 is a dot call. Anything else -- the userdata a
+        // colon call passes, or the self argument __index is handed -- puts
+        // the key in slot 2.
+        if $lua.lua_type(1) == ::gmod::lua::LUA_TSTRING {
+            debug_println!("fetched as a dot method");
+            $lua.check_string(1)
+        } else {
+            debug_println!("fetched as a colon method");
+            $lua.check_string(2)
         }
-    }
+    }};
 }
 
 #[lua_function]
@@ -83,8 +87,13 @@ unsafe fn index(lua: State) -> i32 {
                     debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), str_idx, val);
                     lua.push_string(val.as_str())
                 }
-                Err(err) => {
-                    debug_println!("{} -> {} failed: {}", env!("CARGO_CRATE_NAME"), str_idx, err);
+                Err(_err) => {
+                    debug_println!(
+                        "{} -> {} failed: {}",
+                        env!("CARGO_CRATE_NAME"),
+                        str_idx,
+                        _err
+                    );
                     lua.push_nil();
                 }
             }
@@ -96,12 +105,12 @@ unsafe fn index(lua: State) -> i32 {
     rtn
 }
 
-unsafe fn push_table(lua: State, split: Vec<&str>){
+unsafe fn push_table(lua: State, split: Vec<&str>) {
     lua.create_table(split.len() as i32, 0);
     let mut i = 0;
     for s in split {
         let s = s.trim();
-        if s != "" {
+        if !s.is_empty() {
             i += 1;
             lua.push_string(s);
             lua.raw_seti(-2, i);
@@ -117,9 +126,9 @@ unsafe fn get_path(lua: State) -> i32 {
             let val = val.as_str();
             let split = val.split(PATH_SEP).collect::<Vec<&str>>();
             push_table(lua, split);
-        },
-        Err(err) => {
-            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), "PATH", err);
+        }
+        Err(_err) => {
+            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), "PATH", _err);
             lua.new_table();
         }
     }
@@ -138,8 +147,13 @@ unsafe fn get_csv(lua: State) -> i32 {
             let split = val.split(",").collect::<Vec<&str>>();
             push_table(lua, split);
         }
-        Err(err) => {
-            debug_println!("{} -> {} failed: {}", env!("CARGO_CRATE_NAME"), str_idx, err);
+        Err(_err) => {
+            debug_println!(
+                "{} -> {} failed: {}",
+                env!("CARGO_CRATE_NAME"),
+                str_idx,
+                _err
+            );
             lua.new_table();
         }
     }
@@ -166,10 +180,11 @@ unsafe fn gmod13_open(lua: State) -> i32 {
         ($value:literal, $name:literal) => {
             lua.push_string($value);
             lua.set_field(-2, lua_string!($name));
-        }
+        };
     }
 
-    #[cfg(feature = "gmcl")]{
+    #[cfg(feature = "gmcl")]
+    {
         override_stdout();
     }
 

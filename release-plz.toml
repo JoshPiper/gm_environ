@@ -1,0 +1,18 @@
+[workspace]
+# Not published to crates.io; releases are git tags + GitHub releases only.
+publish = false
+git_tag_enable = true
+git_release_enable = true
+# Created as a draft; the release workflow undrafts after binaries attach,
+# so a release is never visible without its assets.
+git_release_draft = true
+changelog_update = true
+
+[[package]]
+name = "gm_environ"
+# Without this, release-plz falls back to checking crates.io for the
+# package's current version. gm_environ has never been published there,
+# so that lookup finds nothing and release-plz silently concludes there's
+# nothing to release. git_only makes it use git tags instead, which is
+# what git_tag_enable/git_release_enable above already assume.
+git_only = true

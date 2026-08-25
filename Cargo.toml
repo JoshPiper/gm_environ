@@ -2,15 +2,31 @@
 name = "gm_environ"
 version = "0.4.1"
 edition = "2021"
+description = "Garry's Mod binary module exposing environment variables to Lua"
+license = "MIT"
+repository = "https://github.com/JoshPiper/gm_environ"
+readme = "README.md"
+keywords = ["garrysmod", "gmod", "binary-module", "environment"]
+# Do not add publish = false here: release-plz's release command filters on
+# this manifest field and would skip the package entirely ("nothing to
+# release"). The crates.io publish opt-out lives in release-plz.toml instead.
 
 [lib]
+# Not gm_environ: the Lua side does require("environ"), and the loader derives
+# the expected export symbol from the file name, so the built artifact has to
+# be {lib,}environ.{so,dll,dylib}.
 name = "environ"
 crate-type = ["cdylib"]
 
 [features]
-gmcl = []
+gmcl = ["gmod/gmcl"]
 
 [dependencies]
-gmod = {version = "17.0.0", features = ["gmcl"], default-features = false}
-debug_print = "1.0.0"
-lazy_static = "1.4.0"
+gmod = { version = "17", default-features = false }
+debug_print = "1.0"
+lazy_static = "1.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"
