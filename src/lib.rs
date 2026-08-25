@@ -1,15 +1,20 @@
 #[cfg(feature = "gmcl")]
 use gmod::gmcl::override_stdout;
-use gmod::lua::State;
-use gmod::lua_function;
-use lazy_static::lazy_static;
+use gmod::lua::{State, LUA_TSTRING};
+use gmod::{gmod13_close, gmod13_open, lua_function, lua_string};
 use std::collections::HashMap;
 use std::env;
+use std::sync::LazyLock;
 
-#[macro_use]
-extern crate gmod;
-#[macro_use]
-extern crate debug_print;
+use debug_print::debug_println;
+
+static MOD_NAME: &str = "environ";
+
+macro_rules! err {
+    ($arg:literal) => {
+        format!("{}: {}", MOD_NAME, $arg)
+    };
+}
 
 #[cfg(not(windows))]
 const PATH_SEP: &str = ":";
@@ -17,25 +22,28 @@ const PATH_SEP: &str = ":";
 const PATH_SEP: &str = ";";
 
 type RustLuaFunction = unsafe extern "C-unwind" fn(State) -> i32;
-lazy_static! {
-    static ref FUNC_MAP: HashMap<&'static str, RustLuaFunction> = {
-        let mut m = HashMap::new();
 
-        macro_rules! export {
-            ($name:ident) => {
-                m.insert(stringify!($name), $name as RustLuaFunction);
-            };
-            ($func:ident, $name:literal) => {
-                m.insert($name, $func as RustLuaFunction);
-            };
-        }
+/// Names resolved as module functions rather than as environment variables.
+/// A variable that happens to share one of these names is shadowed by it --
+/// reach for `environ.get_csv` and friends knowing that, or read the raw
+/// value out of the process environment some other way.
+static FUNC_MAP: LazyLock<HashMap<&'static str, RustLuaFunction>> = LazyLock::new(|| {
+    let mut m = HashMap::new();
 
-        export!(get_path);
-        export!(get_csv);
+    macro_rules! export {
+        ($name:ident) => {
+            m.insert(stringify!($name), $name as RustLuaFunction);
+        };
+        ($func:ident, $name:literal) => {
+            m.insert($name, $func as RustLuaFunction);
+        };
+    }
 
-        m
-    };
-}
+    export!(get_path);
+    export!(get_csv);
+
+    m
+});
 
 /// Get the requested string index, agnostic of method call type.
 ///
@@ -60,7 +68,7 @@ macro_rules! requested_index {
         // A string in slot 1 is a dot call. Anything else -- the userdata a
         // colon call passes, or the self argument __index is handed -- puts
         // the key in slot 2.
-        if $lua.lua_type(1) == ::gmod::lua::LUA_TSTRING {
+        if $lua.lua_type(1) == LUA_TSTRING {
             debug_println!("fetched as a dot method");
             $lua.check_string(1)
         } else {
@@ -84,16 +92,11 @@ unsafe fn index(lua: State) -> i32 {
             let env_var = env::var(str_idx.as_ref());
             match env_var {
                 Ok(val) => {
-                    debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), str_idx, val);
+                    debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
                     lua.push_string(val.as_str())
                 }
                 Err(_err) => {
-                    debug_println!(
-                        "{} -> {} failed: {}",
-                        env!("CARGO_CRATE_NAME"),
-                        str_idx,
-                        _err
-                    );
+                    debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, _err);
                     lua.push_nil();
                 }
             }
@@ -128,7 +131,7 @@ unsafe fn get_path(lua: State) -> i32 {
             push_table(lua, split);
         }
         Err(_err) => {
-            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), "PATH", _err);
+            debug_println!("{} -> {}: {}", MOD_NAME, "PATH", _err);
             lua.new_table();
         }
     }
@@ -142,18 +145,13 @@ unsafe fn get_csv(lua: State) -> i32 {
     let env_var = env::var(str_idx.as_ref());
     match env_var {
         Ok(val) => {
-            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), str_idx, val);
+            debug_println!("{} -> {}: {}", MOD_NAME, str_idx, val);
             let val = val.as_str();
             let split = val.split(",").collect::<Vec<&str>>();
             push_table(lua, split);
         }
         Err(_err) => {
-            debug_println!(
-                "{} -> {} failed: {}",
-                env!("CARGO_CRATE_NAME"),
-                str_idx,
-                _err
-            );
+            debug_println!("{} -> {} failed: {}", MOD_NAME, str_idx, _err);
             lua.new_table();
         }
     }
@@ -163,16 +161,12 @@ unsafe fn get_csv(lua: State) -> i32 {
 
 #[lua_function]
 unsafe fn newindex(lua: State) -> i32 {
-    lua.error("Environment Variables cannot be set.");
+    lua.error(err!("environment variables cannot be set"));
 }
 
 #[gmod13_open]
 unsafe fn gmod13_open(lua: State) -> i32 {
     macro_rules! export {
-        ($name:ident) => {
-            lua.push_function($name);
-            lua.set_field(-2, concat!(stringify!($name), "\0").as_ptr() as *const i8);
-        };
         ($func:ident, $name:literal) => {
             lua.push_function($func);
             lua.set_field(-2, lua_string!($name));
@@ -187,6 +181,9 @@ unsafe fn gmod13_open(lua: State) -> i32 {
     {
         override_stdout();
     }
+
+    // Build the function table up front, rather than lazily on first lookup.
+    LazyLock::force(&FUNC_MAP);
 
     // Create _G.environ metatable
     lua.new_metatable(lua_string!("environ"));
@@ -205,5 +202,8 @@ unsafe fn gmod13_open(lua: State) -> i32 {
 
 #[gmod13_close]
 fn gmod13_close(_lua: State) -> i32 {
+    // gmod-rs's #[gmod13_close] appends the gmcl::restore_stdout() that
+    // override_stdout requires on unload (or the game crashes), so there is
+    // deliberately no explicit call here.
     0
 }
