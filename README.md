@@ -39,12 +39,91 @@ On macOS, downloaded files carry the quarantine attribute and may be blocked fro
 require("environ")
 -- Loads _G.environ
 
--- NYI
+local home = environ.HOME -- "/home/gmod", or nil if unset
+local dirs = environ.get_path() -- { "/usr/local/bin", "/usr/bin", ... }
 ```
+
+A [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is available - see [Editor support](#editor-support) for autocomplete and inline docs while writing Lua against this module.
+
+## Semantics
+
+- `environ` is a **userdata**, not a table. Reads go through an `__index` metamethod that hits the process environment on every lookup, so a variable changed by something else in the process is visible immediately - there is no snapshot taken at load time. The flip side is that it does not behave like a table: `pairs()`, `#`, and `table.*` will not work on it, and there is no way to enumerate the environment.
+- **Reads never raise.** An unset variable reads as `nil`, and the two splitting helpers return an empty table rather than erroring. This is the opposite of [gm_sysinfo](https://github.com/JoshPiper/gm_sysinfo)'s convention, deliberately: "this variable isn't set" is an ordinary, expected answer here, not a failure to report.
+- **Writes always raise.** The module is strictly read-only; see [`__newindex`](#environkey--value) below.
+- Every function accepts **both call forms**. `environ.get_csv("X")` and `environ:get_csv("X")` are equivalent - the key lands in a different argument slot and the module handles either. The docs below use the dot form throughout.
+- Function names **shadow** environment variables. `environ.get_path` is always the function, even on a host that happens to export a variable called `get_path`. The shadowed names are `get_path`, `get_csv`, `get_version` and `get_build_info`.
 
 ## API Reference
 
-NYI
+### `environ.<KEY>: string?`
+Returns the value of the `<KEY>` environment variable, or `nil` if it isn't set. Never raises.
+
+```lua
+local port = tonumber(environ.SRCDS_PORT) or 27015
+```
+
+Lookups are case-sensitive on Linux and macOS, and case-insensitive on Windows - this module doesn't normalise either way, it just asks the OS.
+
+### `environ.get_path(): string[]`
+Returns `PATH` split on the platform's path separator (`:` on Linux and macOS, `;` on Windows), as an array of strings. Entries are trimmed, and blanks are dropped, so a trailing separator or an empty component won't show up as an empty string in the result. Never raises - an unset `PATH` yields an empty table.
+
+```lua
+for _, dir in ipairs(environ.get_path()) do
+    print(dir)
+end
+```
+
+### `environ.get_csv(key): string[]`
+Returns the named environment variable split on commas, with the same trimming and blank-dropping as `get_path()`. Never raises - an unset variable yields an empty table.
+
+```lua
+local admins = environ.get_csv("GMOD_ADMIN_STEAMIDS")
+```
+
+Note that an unset variable and a variable set to an empty string are indistinguishable through this function: both give `{}`. Read the raw value if you need to tell them apart.
+
+### `environ.get_version(): string`
+Returns the module's own version, e.g. `"0.4.1"`.
+
+### `environ.get_build_info(): table`
+Returns build information for the running binary:
+
+```lua
+{
+    version       = "0.4.1",
+    commit        = "c73b33dc3ad16535a344cd427909c77b79b60bef", -- or nil
+    commit_short  = "c73b33d",                                   -- or nil
+    dirty         = false,                                       -- or nil if unknown
+    built_at      = "Thu, 13 Aug 2026 04:03:15 +0000",
+    target        = "x86_64-unknown-linux-gnu",
+    realm         = "sv",                                        -- or "cl"
+    rustc_version = "rustc 1.99.0-nightly (ad3d0bc14 2026-07-31)",
+    official      = true,  -- built by CI, not a local `cargo build`
+    repository    = "JoshPiper/gm_environ",
+    run_url       = "https://github.com/JoshPiper/gm_environ/actions/runs/123456",
+}
+```
+
+`commit`, `commit_short`, and `dirty` are `nil` if the binary wasn't built from a git checkout. `repository` and `run_url` are empty strings outside of GitHub Actions. If `official` is `false`, or `run_url` doesn't resolve to a real workflow run, treat the binary as unverified; it wasn't built by this project's release pipeline.
+
+### `environ.<KEY> = value`
+**Always raises.** The environment is read-only through this module:
+
+```lua
+environ.PATH = "/tmp" -- error: environ: environment variables cannot be set
+```
+
+Read-only is a deliberate contract, not a missing feature, and it isn't likely to be relaxed: `setenv` is not thread-safe (Rust made `std::env::set_var` `unsafe` in the 2024 edition for exactly this reason), and Garry's Mod runs Lua alongside engine threads that read the environment, so a write from Lua could tear a read anywhere else in the process. If you need a value to travel from Lua outwards, use a file or a network call, not the environment.
+
+## Editor support
+
+A [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file, [`environ.lua`](environ.lua), ships in this repository and as a release asset. It's declarations only (`---@meta`) - never `require()` it in-game. Point your editor at it instead, e.g. in `.luarc.json`:
+
+```json
+{
+    "workspace.library": ["path/to/environ.lua"]
+}
+```
 
 ## Building from source
 

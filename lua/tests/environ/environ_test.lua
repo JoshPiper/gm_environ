@@ -91,6 +91,34 @@ return {
             end
         },
         {
+            name = "Refuses to let Lua overwrite an already-set variable",
+            func = function()
+                local before = environ.PATH
+
+                expect( function()
+                    environ.PATH = "/nowhere"
+                end ).to.err()
+
+                expect( environ.PATH ).to.equal( before )
+            end
+        },
+        {
+            name = "Resolves module functions ahead of same-named variables",
+            func = function()
+                -- Function names shadow the environment; these must come back
+                -- as callables whether or not the host exports such a variable.
+                for _, name in ipairs( { "get_path", "get_csv", "get_version", "get_build_info" } ) do
+                    expect( environ[name] ).to.beA( "function" )
+                end
+            end
+        },
+        {
+            name = "Splits PATH the same way whether called with a dot or a colon",
+            func = function()
+                expect( environ:get_path() ).to.deepEqual( environ.get_path() )
+            end
+        },
+        {
             name = "Reports its own version as a non-empty string",
             func = function()
                 local version = environ.get_version()

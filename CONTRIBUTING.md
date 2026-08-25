@@ -98,6 +98,8 @@ CI runs [GLuaTest](https://github.com/CFC-Servers/GLuaTest) against the built se
 - No comments explaining *what* the code does — the names already do that. A comment earns its place only when it captures a non-obvious *why*: a hidden constraint, a workaround, a decision that would otherwise look like a mistake to a reviewer.
 - Keep the `unsafe` surface exactly as small as it is today. Adding a new Lua-exported function? Follow the existing `#[lua_function]` pattern in `src/lib.rs` rather than inventing a new calling convention.
 - A new function that reads an argument off the stack goes through the existing `requested_index!` macro, so it accepts both `environ.f("KEY")` and `environ:f("KEY")` like its neighbours do.
+- A new function also needs registering in `FUNC_MAP`, or `__index` will never find it and the name will fall through to an environment-variable lookup instead. Add it to the README's list of shadowed names and to `environ.lua` at the same time.
+- A new getter that fits the shape of its neighbours extends the existing macros (`err!`, `export!`, `set_field!`). It doesn't get a hand-rolled one-off.
 - Run `cargo fmt` before you push. CI enforces it, and it will not fix it for you.
 
 ---
