@@ -42,9 +42,21 @@ require("environ")
 -- NYI
 ```
 
+An [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is available - see [Editor support](#editor-support) for autocomplete and inline docs while writing Lua against this module.
+
 ## API Reference
 
 NYI
+
+## Editor support
+
+A [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file, [`environ.lua`](environ.lua), ships in this repository and as a release asset. It's declarations only (`---@meta`) — never `require()` it in-game. Point your editor at it instead, e.g. in `.luarc.json`:
+
+```json
+{
+    "workspace.library": ["path/to/environ.lua"]
+}
+```
 
 ## Building from source
 
