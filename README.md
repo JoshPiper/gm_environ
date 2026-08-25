@@ -39,14 +39,62 @@ On macOS, downloaded files carry the quarantine attribute and may be blocked fro
 require("environ")
 -- Loads _G.environ
 
--- NYI
+local home = environ.HOME -- "/home/gmod", or nil if it isn't set
+local paths = environ.get_path() -- { "/usr/local/bin", "/usr/bin", ... }
 ```
 
 An [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is available - see [Editor support](#editor-support) for autocomplete and inline docs while writing Lua against this module.
 
+## Semantics
+
+- `environ` is **read-only**. Assigning to any key raises a Lua error; a process can't usefully rewrite the environment it inherited, so the module doesn't pretend otherwise.
+
+  ```lua
+  environ.PATH = "/tmp" -- error: Environment Variables cannot be set.
+  ```
+
+- `environ` is a **userdata, not a table**. Every read goes through its metatable, and there's no way to enumerate it — `pairs(environ)` errors, and nothing here lists every variable. You can only ask for one by name.
+- **Nothing raises for a missing variable.** An unset variable reads as `nil`, and the splitters return an empty table for one, so `pcall` isn't needed around any of this. The flip side is that "unset" and "set to an empty value" are indistinguishable through `get_path()` and `get_csv()`.
+- **Values are read fresh on every access**, not captured when the module loads. In practice the environment a process inherited doesn't change while it runs, so this rarely matters.
+- **Both call forms work.** `environ.get_csv("PATH")` and `environ:get_csv("PATH")` are equivalent — the module works out which argument slot the key landed in. The dot form is used throughout this document.
+
 ## API Reference
 
-NYI
+### `environ.<NAME>: string`
+
+Returns the value of the environment variable `<NAME>`, or `nil` if it isn't set. Any string key works, including names that aren't valid Lua identifiers — reach those with bracket syntax:
+
+```lua
+local home = environ.HOME
+local pf = environ["ProgramFiles(x86)"]
+```
+
+A value that isn't valid UTF-8 also reads as `nil`, indistinguishable from an unset variable. This is only reachable on Linux and macOS, where the OS stores environment values as raw bytes rather than text.
+
+`get_path` and `get_csv` are the two names this doesn't apply to: they always resolve to the functions below, shadowing any environment variable that happens to share the name. `environ.get_csv("get_path")` reads the variable itself, if you ever need it.
+
+### `environ.get_path(): table`
+
+Returns `PATH` split into its component directories, using the host's separator (`;` on Windows, `:` everywhere else). Entries are trimmed and empty ones dropped, so the result is always a dense array of non-empty strings — safe to `ipairs` over or take `#` of. Returns an empty table if `PATH` isn't set; never raises.
+
+```lua
+for _, dir in ipairs(environ.get_path()) do
+    print(dir) -- "/usr/local/bin", "/usr/bin", ...
+end
+```
+
+The separator is fixed when the binary is built, so it matches the platform the module was compiled for.
+
+### `environ.get_csv(key): table`
+
+Returns the variable named `key` split on commas, trimmed and compacted the same way `get_path()` is. Returns an empty table if the variable isn't set — as it also does for one set to `""`, or to `",,,"`. Raises only if `key` isn't a string.
+
+```lua
+-- MY_ADDONS="foo, bar ,,baz"
+local addons = environ.get_csv("MY_ADDONS") -- { "foo", "bar", "baz" }
+```
+
+Splitting is unconditional and has no escape syntax: this is a plain separated list, not [RFC 4180](https://www.rfc-editor.org/rfc/rfc4180) CSV, so a value containing a quoted comma splits on that comma too.
 
 ## Editor support
 

@@ -14,6 +14,11 @@
 --- local home = environ.HOME -- "/home/gmod", or nil
 --- ```
 ---
+--- A value that isn't valid UTF-8 reads as nil too, indistinguishable from
+--- an unset variable. get_path and get_csv are the two names this doesn't
+--- apply to: they always resolve to the functions below, shadowing any
+--- variable of the same name (get_csv reads such a variable, if needed).
+---
 --- Assigning to any key raises a Lua error -- environment variables cannot
 --- be set from Lua. It's a userdata rather than a table, so it can't be
 --- iterated with pairs() either: there is no way to list every variable,
