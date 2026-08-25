@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/JoshPiper/gm_environ/compare/v0.4.1...v0.4.2) - 2026-08-25
+
+### Other
+
+- *(deps)* bump gmod from 17.0.0 to 17.0.1 ([#5](https://github.com/JoshPiper/gm_environ/pull/5))
+- *(deps)* bump lazy_static from 1.4.0 to 1.5.0 ([#4](https://github.com/JoshPiper/gm_environ/pull/4))
+- ship a LuaLS type stub and document the API ([#6](https://github.com/JoshPiper/gm_environ/pull/6))
+- Rebuild the build system in the style of gm_sysinfo ([#2](https://github.com/JoshPiper/gm_environ/pull/2))
+
 ## [0.4.1](https://github.com/JoshPiper/gm_environ/compare/v0.4.0...v0.4.1) (2025-06-08)
 
 
