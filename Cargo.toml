@@ -8,9 +8,9 @@ name = "environ"
 crate-type = ["cdylib"]
 
 [features]
-gmcl = []
+gmcl = ["gmod/gmcl"]
 
 [dependencies]
-gmod = {version = "17.0.0", features = ["gmcl"], default-features = false}
+gmod = {version = "17.0.0", default-features = false}
 debug_print = "1.0.0"
 lazy_static = "1.4.0"
