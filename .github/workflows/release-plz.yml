@@ -132,6 +132,7 @@ jobs:
           # and not the lib target name (which is "environ" here) -- verified
           # against the actual installed binary, whose own docs say otherwise.
           mv gm_environ.cdx.json "assets/gm_environ-${{ steps.tag.outputs.tag }}.cdx.json"
+          cp environ.lua assets/environ.lua
           (cd assets && sha256sum -- * > SHA256SUMS)
 
       # Signed SLSA build provenance, queryable later with:
