@@ -40,7 +40,7 @@ lazy_static! {
 /// Get the requested string index, agnostic of method call type.
 ///
 /// If we're called as a colon method:
-/// `environ:whatever("env_key")` -> `environ.whatever(environ, "env_key")` -> `(table, string)`
+/// `environ:whatever("env_key")` -> `environ.whatever(environ, "env_key")` -> `(userdata, string)`
 ///
 /// Whereas, if we're called as a dot method:
 /// `environ.whatever("env_key")` -> `string`
@@ -49,18 +49,24 @@ lazy_static! {
 /// However, documentation will only show dot methoding.
 macro_rules! requested_index {
     ( $lua:ident ) => {{
-        let t = $lua.get_type(1);
-        debug_println!("{}", t);
-
-        let str_key = if (t == "table" || t == "UserData") {
-            debug_println!("fetched as a colon method");
-            $lua.check_string(2)
-        } else {
+        // Keyed off the raw type tag rather than State::get_type. That
+        // returns lua_typename's string, which is unreliable here on two
+        // counts: its spelling for a userdata differs between stock LuaJIT
+        // ("userdata") and GMod's build, and calling it in GMod leaves a
+        // value behind on the stack (Facepunch/garrysmod-issues#5134) --
+        // which is why gmod-rs's own lua_type_name carries a workaround
+        // that get_type does not.
+        //
+        // A string in slot 1 is a dot call. Anything else -- the userdata a
+        // colon call passes, or the self argument __index is handed -- puts
+        // the key in slot 2.
+        if $lua.lua_type(1) == ::gmod::lua::LUA_TSTRING {
             debug_println!("fetched as a dot method");
             $lua.check_string(1)
-        };
-
-        str_key
+        } else {
+            debug_println!("fetched as a colon method");
+            $lua.check_string(2)
+        }
     }};
 }
 
