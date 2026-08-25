@@ -1,15 +1,15 @@
-#![feature(c_unwind)]
-
-use std::collections::HashMap;
-use std::env;
 #[cfg(feature = "gmcl")]
 use gmod::gmcl::override_stdout;
-use gmod::lua::{State};
+use gmod::lua::State;
 use gmod::lua_function;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::env;
 
-#[macro_use] extern crate gmod;
-#[macro_use] extern crate debug_print;
+#[macro_use]
+extern crate gmod;
+#[macro_use]
+extern crate debug_print;
 
 #[cfg(not(windows))]
 const PATH_SEP: &str = ":";
@@ -27,7 +27,7 @@ lazy_static! {
             };
             ($func:ident, $name:literal) => {
                 m.insert($name, $func as RustLuaFunction);
-            }
+            };
         }
 
         export!(get_path);
@@ -48,22 +48,20 @@ lazy_static! {
 /// I don't care which is done, so we support both.
 /// However, documentation will only show dot methoding.
 macro_rules! requested_index {
-    ( $lua:ident ) => {
-        {
-            let t = $lua.get_type(1);
-            debug_println!("{}", t);
+    ( $lua:ident ) => {{
+        let t = $lua.get_type(1);
+        debug_println!("{}", t);
 
-            let str_key = if (t == "table" || t == "UserData") {
-                debug_println!("fetched as a colon method");
-                $lua.check_string(2)
-            } else {
-                debug_println!("fetched as a dot method");
-                $lua.check_string(1)
-            };
+        let str_key = if (t == "table" || t == "UserData") {
+            debug_println!("fetched as a colon method");
+            $lua.check_string(2)
+        } else {
+            debug_println!("fetched as a dot method");
+            $lua.check_string(1)
+        };
 
-            str_key
-        }
-    }
+        str_key
+    }};
 }
 
 #[lua_function]
@@ -83,8 +81,13 @@ unsafe fn index(lua: State) -> i32 {
                     debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), str_idx, val);
                     lua.push_string(val.as_str())
                 }
-                Err(err) => {
-                    debug_println!("{} -> {} failed: {}", env!("CARGO_CRATE_NAME"), str_idx, err);
+                Err(_err) => {
+                    debug_println!(
+                        "{} -> {} failed: {}",
+                        env!("CARGO_CRATE_NAME"),
+                        str_idx,
+                        _err
+                    );
                     lua.push_nil();
                 }
             }
@@ -96,12 +99,12 @@ unsafe fn index(lua: State) -> i32 {
     rtn
 }
 
-unsafe fn push_table(lua: State, split: Vec<&str>){
+unsafe fn push_table(lua: State, split: Vec<&str>) {
     lua.create_table(split.len() as i32, 0);
     let mut i = 0;
     for s in split {
         let s = s.trim();
-        if s != "" {
+        if !s.is_empty() {
             i += 1;
             lua.push_string(s);
             lua.raw_seti(-2, i);
@@ -117,9 +120,9 @@ unsafe fn get_path(lua: State) -> i32 {
             let val = val.as_str();
             let split = val.split(PATH_SEP).collect::<Vec<&str>>();
             push_table(lua, split);
-        },
-        Err(err) => {
-            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), "PATH", err);
+        }
+        Err(_err) => {
+            debug_println!("{} -> {}: {}", env!("CARGO_CRATE_NAME"), "PATH", _err);
             lua.new_table();
         }
     }
@@ -138,8 +141,13 @@ unsafe fn get_csv(lua: State) -> i32 {
             let split = val.split(",").collect::<Vec<&str>>();
             push_table(lua, split);
         }
-        Err(err) => {
-            debug_println!("{} -> {} failed: {}", env!("CARGO_CRATE_NAME"), str_idx, err);
+        Err(_err) => {
+            debug_println!(
+                "{} -> {} failed: {}",
+                env!("CARGO_CRATE_NAME"),
+                str_idx,
+                _err
+            );
             lua.new_table();
         }
     }
@@ -166,10 +174,11 @@ unsafe fn gmod13_open(lua: State) -> i32 {
         ($value:literal, $name:literal) => {
             lua.push_string($value);
             lua.set_field(-2, lua_string!($name));
-        }
+        };
     }
 
-    #[cfg(feature = "gmcl")]{
+    #[cfg(feature = "gmcl")]
+    {
         override_stdout();
     }
 
