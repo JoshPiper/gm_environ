@@ -50,7 +50,7 @@ An [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is
 - `environ` is **read-only**. Assigning to any key raises a Lua error; a process can't usefully rewrite the environment it inherited, so the module doesn't pretend otherwise.
 
   ```lua
-  environ.PATH = "/tmp" -- error: Environment Variables cannot be set.
+  environ.PATH = "/tmp" -- error: environ: environment variables cannot be set
   ```
 
 - `environ` is a **userdata, not a table**. Every read goes through its metatable, and there's no way to enumerate it — `pairs(environ)` errors, and nothing here lists every variable. You can only ask for one by name.
@@ -71,7 +71,7 @@ local pf = environ["ProgramFiles(x86)"]
 
 A value that isn't valid UTF-8 also reads as `nil`, indistinguishable from an unset variable. This is only reachable on Linux and macOS, where the OS stores environment values as raw bytes rather than text.
 
-`get_path` and `get_csv` are the two names this doesn't apply to: they always resolve to the functions below, shadowing any environment variable that happens to share the name. `environ.get_csv("get_path")` reads the variable itself, if you ever need it.
+`get_path`, `get_csv`, `get_version` and `get_build_info` are the names this doesn't apply to: they always resolve to the functions below, shadowing any environment variable that happens to share the name. `environ.get_csv("get_path")` reads the variable itself, if you ever need it.
 
 ### `environ.get_path(): table`
 
@@ -95,6 +95,34 @@ local addons = environ.get_csv("MY_ADDONS") -- { "foo", "bar", "baz" }
 ```
 
 Splitting is unconditional and has no escape syntax: this is a plain separated list, not [RFC 4180](https://www.rfc-editor.org/rfc/rfc4180) CSV, so a value containing a quoted comma splits on that comma too.
+
+### `environ.get_version(): string`
+
+Returns the module's own version, e.g. `"0.4.2"`. Never raises.
+
+### `environ.get_build_info(): table`
+
+Returns build information for the running binary:
+
+```lua
+{
+    version       = "0.4.2",
+    commit        = "c73b33dc3ad16535a344cd427909c77b79b60bef", -- or nil
+    commit_short  = "c73b33d",                                   -- or nil
+    dirty         = false,                                       -- or nil if unknown
+    built_at      = "Thu, 13 Aug 2026 04:03:15 +0000",
+    target        = "x86_64-unknown-linux-gnu",
+    realm         = "sv",                                        -- or "cl"
+    rustc_version = "rustc 1.99.0-nightly (ad3d0bc14 2026-07-31)",
+    official      = true,  -- built by CI, not a local `cargo build`
+    repository    = "JoshPiper/gm_environ",
+    run_url       = "https://github.com/JoshPiper/gm_environ/actions/runs/123456",
+}
+```
+
+`commit`, `commit_short`, and `dirty` are `nil` if the binary wasn't built from a git checkout. `repository` and `run_url` are empty strings outside of GitHub Actions. If `official` is `false`, or `run_url` doesn't resolve to a real workflow run, treat the binary as unverified; it wasn't built by this project's release pipeline.
+
+`official` is a convenience for spotting a hand-built binary, not a security boundary — nothing stops a local build from setting the same environment variables CI does. [Verifying a release](#verifying-a-release) is the check that actually proves provenance.
 
 ## Editor support
 

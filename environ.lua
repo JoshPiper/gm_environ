@@ -15,9 +15,10 @@
 --- ```
 ---
 --- A value that isn't valid UTF-8 reads as nil too, indistinguishable from
---- an unset variable. get_path and get_csv are the two names this doesn't
---- apply to: they always resolve to the functions below, shadowing any
---- variable of the same name (get_csv reads such a variable, if needed).
+--- an unset variable. The four function names below are what this doesn't
+--- apply to: get_path, get_csv, get_version and get_build_info always
+--- resolve to the functions, shadowing any variable of the same name
+--- (get_csv reads such a variable, if needed).
 ---
 --- Assigning to any key raises a Lua error -- environment variables cannot
 --- be set from Lua. It's a userdata rather than a table, so it can't be
@@ -48,3 +49,28 @@ function environ.get_path() end
 --- @return string[]
 --- @overload fun(self: environ, key: string): string[]
 function environ.get_csv(key) end
+
+--- Returns the module's own version, e.g. "0.4.2".
+--- @return string
+--- @overload fun(self: environ): string
+function environ.get_version() end
+
+--- @class EnvironBuildInfo
+--- @field version string
+--- @field commit string? # nil if not built from a git checkout
+--- @field commit_short string? # nil if not built from a git checkout
+--- @field dirty boolean? # nil if unknown
+--- @field built_at string
+--- @field target string
+--- @field realm "sv"|"cl"
+--- @field rustc_version string
+--- @field official boolean # true only for binaries built by this project's CI
+--- @field repository string # empty outside of GitHub Actions
+--- @field run_url string # empty outside of GitHub Actions
+
+--- Returns build provenance for the running binary. See the README's
+--- "Verifying a release" section before trusting `official`, `commit`, or
+--- `run_url` for anything security-sensitive.
+--- @return EnvironBuildInfo
+--- @overload fun(self: environ): EnvironBuildInfo
+function environ.get_build_info() end

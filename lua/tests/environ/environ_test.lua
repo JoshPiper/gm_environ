@@ -90,5 +90,64 @@ return {
                 expect( environ.GM_ENVIRON_WRITE_TEST ).to.beNil()
             end
         },
+        {
+            name = "Refuses to let Lua overwrite an already-set variable",
+            func = function()
+                local before = environ.PATH
+
+                expect( function()
+                    environ.PATH = "/nowhere"
+                end ).to.err()
+
+                expect( environ.PATH ).to.equal( before )
+            end
+        },
+        {
+            name = "Resolves module functions ahead of same-named variables",
+            func = function()
+                -- Function names shadow the environment; these must come back
+                -- as callables whether or not the host exports such a variable.
+                for _, name in ipairs( { "get_path", "get_csv", "get_version", "get_build_info" } ) do
+                    expect( environ[name] ).to.beA( "function" )
+                end
+            end
+        },
+        {
+            name = "Splits PATH the same way whether called with a dot or a colon",
+            func = function()
+                expect( environ:get_path() ).to.deepEqual( environ.get_path() )
+            end
+        },
+        {
+            name = "Reports its own version as a non-empty string",
+            func = function()
+                local version = environ.get_version()
+                expect( version ).to.beA( "string" )
+                expect( #version ).to.beGreaterThan( 0 )
+            end
+        },
+        {
+            name = "Reports build info matching an official CI build of this target",
+            func = function()
+                local info = environ.get_build_info()
+                expect( info ).to.exist()
+
+                -- These tests only run against binaries built by ci.yml,
+                -- so provenance should always resolve.
+                expect( info.official ).to.equal( true )
+                expect( info.commit ).to.beA( "string" )
+                expect( #info.commit ).to.equal( 40 )
+                expect( info.dirty ).to.equal( false )
+                expect( info.version ).to.equal( environ.get_version() )
+                expect( info.repository ).to.beA( "string" )
+                expect( #info.repository ).to.beGreaterThan( 0 )
+                expect( info.run_url ).to.beA( "string" )
+                expect( #info.run_url ).to.beGreaterThan( 0 )
+
+                -- CI always builds server modules on Linux.
+                expect( info.realm ).to.equal( "sv" )
+                expect( info.target:find( "linux", 1, true ) ).to.exist()
+            end
+        },
     }
 }

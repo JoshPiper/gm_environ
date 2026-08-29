@@ -24,7 +24,9 @@ gmcl = ["gmod/gmcl"]
 [dependencies]
 gmod = { version = "17", default-features = false }
 debug_print = "1.0"
-lazy_static = "1.4"
+
+[build-dependencies]
+built = { version = "0.8", features = ["chrono", "gix"] }
 
 [profile.release]
 lto = true
