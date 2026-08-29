@@ -39,58 +39,74 @@ On macOS, downloaded files carry the quarantine attribute and may be blocked fro
 require("environ")
 -- Loads _G.environ
 
-local home = environ.HOME -- "/home/gmod", or nil if unset
-local dirs = environ.get_path() -- { "/usr/local/bin", "/usr/bin", ... }
+local home = environ.HOME -- "/home/gmod", or nil if it isn't set
+local paths = environ.get_path() -- { "/usr/local/bin", "/usr/bin", ... }
 ```
 
-A [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is available - see [Editor support](#editor-support) for autocomplete and inline docs while writing Lua against this module.
+An [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is available - see [Editor support](#editor-support) for autocomplete and inline docs while writing Lua against this module.
 
 ## Semantics
 
-- `environ` is a **userdata**, not a table. Reads go through an `__index` metamethod that hits the process environment on every lookup, so a variable changed by something else in the process is visible immediately - there is no snapshot taken at load time. The flip side is that it does not behave like a table: `pairs()`, `#`, and `table.*` will not work on it, and there is no way to enumerate the environment.
-- **Reads never raise.** An unset variable reads as `nil`, and the two splitting helpers return an empty table rather than erroring. This is the opposite of [gm_sysinfo](https://github.com/JoshPiper/gm_sysinfo)'s convention, deliberately: "this variable isn't set" is an ordinary, expected answer here, not a failure to report.
-- **Writes always raise.** The module is strictly read-only; see [`__newindex`](#environkey--value) below.
-- Every function accepts **both call forms**. `environ.get_csv("X")` and `environ:get_csv("X")` are equivalent - the key lands in a different argument slot and the module handles either. The docs below use the dot form throughout.
-- Function names **shadow** environment variables. `environ.get_path` is always the function, even on a host that happens to export a variable called `get_path`. The shadowed names are `get_path`, `get_csv`, `get_version` and `get_build_info`.
+- `environ` is **read-only**. Assigning to any key raises a Lua error; a process can't usefully rewrite the environment it inherited, so the module doesn't pretend otherwise.
+
+  ```lua
+  environ.PATH = "/tmp" -- error: environ: environment variables cannot be set
+  ```
+
+- `environ` is a **userdata, not a table**. Every read goes through its metatable, and there's no way to enumerate it — `pairs(environ)` errors, and nothing here lists every variable. You can only ask for one by name.
+- **Nothing raises for a missing variable.** An unset variable reads as `nil`, and the splitters return an empty table for one, so `pcall` isn't needed around any of this. The flip side is that "unset" and "set to an empty value" are indistinguishable through `get_path()` and `get_csv()`.
+- **Values are read fresh on every access**, not captured when the module loads. In practice the environment a process inherited doesn't change while it runs, so this rarely matters.
+- **Both call forms work.** `environ.get_csv("PATH")` and `environ:get_csv("PATH")` are equivalent — the module works out which argument slot the key landed in. The dot form is used throughout this document.
 
 ## API Reference
 
-### `environ.<KEY>: string?`
-Returns the value of the `<KEY>` environment variable, or `nil` if it isn't set. Never raises.
+### `environ.<NAME>: string`
+
+Returns the value of the environment variable `<NAME>`, or `nil` if it isn't set. Any string key works, including names that aren't valid Lua identifiers — reach those with bracket syntax:
 
 ```lua
-local port = tonumber(environ.SRCDS_PORT) or 27015
+local home = environ.HOME
+local pf = environ["ProgramFiles(x86)"]
 ```
 
-Lookups are case-sensitive on Linux and macOS, and case-insensitive on Windows - this module doesn't normalise either way, it just asks the OS.
+A value that isn't valid UTF-8 also reads as `nil`, indistinguishable from an unset variable. This is only reachable on Linux and macOS, where the OS stores environment values as raw bytes rather than text.
 
-### `environ.get_path(): string[]`
-Returns `PATH` split on the platform's path separator (`:` on Linux and macOS, `;` on Windows), as an array of strings. Entries are trimmed, and blanks are dropped, so a trailing separator or an empty component won't show up as an empty string in the result. Never raises - an unset `PATH` yields an empty table.
+`get_path`, `get_csv`, `get_version` and `get_build_info` are the names this doesn't apply to: they always resolve to the functions below, shadowing any environment variable that happens to share the name. `environ.get_csv("get_path")` reads the variable itself, if you ever need it.
+
+### `environ.get_path(): table`
+
+Returns `PATH` split into its component directories, using the host's separator (`;` on Windows, `:` everywhere else). Entries are trimmed and empty ones dropped, so the result is always a dense array of non-empty strings — safe to `ipairs` over or take `#` of. Returns an empty table if `PATH` isn't set; never raises.
 
 ```lua
 for _, dir in ipairs(environ.get_path()) do
-    print(dir)
+    print(dir) -- "/usr/local/bin", "/usr/bin", ...
 end
 ```
 
-### `environ.get_csv(key): string[]`
-Returns the named environment variable split on commas, with the same trimming and blank-dropping as `get_path()`. Never raises - an unset variable yields an empty table.
+The separator is fixed when the binary is built, so it matches the platform the module was compiled for.
+
+### `environ.get_csv(key): table`
+
+Returns the variable named `key` split on commas, trimmed and compacted the same way `get_path()` is. Returns an empty table if the variable isn't set — as it also does for one set to `""`, or to `",,,"`. Raises only if `key` isn't a string.
 
 ```lua
-local admins = environ.get_csv("GMOD_ADMIN_STEAMIDS")
+-- MY_ADDONS="foo, bar ,,baz"
+local addons = environ.get_csv("MY_ADDONS") -- { "foo", "bar", "baz" }
 ```
 
-Note that an unset variable and a variable set to an empty string are indistinguishable through this function: both give `{}`. Read the raw value if you need to tell them apart.
+Splitting is unconditional and has no escape syntax: this is a plain separated list, not [RFC 4180](https://www.rfc-editor.org/rfc/rfc4180) CSV, so a value containing a quoted comma splits on that comma too.
 
 ### `environ.get_version(): string`
-Returns the module's own version, e.g. `"0.4.1"`.
+
+Returns the module's own version, e.g. `"0.4.2"`. Never raises.
 
 ### `environ.get_build_info(): table`
+
 Returns build information for the running binary:
 
 ```lua
 {
-    version       = "0.4.1",
+    version       = "0.4.2",
     commit        = "c73b33dc3ad16535a344cd427909c77b79b60bef", -- or nil
     commit_short  = "c73b33d",                                   -- or nil
     dirty         = false,                                       -- or nil if unknown
@@ -106,18 +122,11 @@ Returns build information for the running binary:
 
 `commit`, `commit_short`, and `dirty` are `nil` if the binary wasn't built from a git checkout. `repository` and `run_url` are empty strings outside of GitHub Actions. If `official` is `false`, or `run_url` doesn't resolve to a real workflow run, treat the binary as unverified; it wasn't built by this project's release pipeline.
 
-### `environ.<KEY> = value`
-**Always raises.** The environment is read-only through this module:
-
-```lua
-environ.PATH = "/tmp" -- error: environ: environment variables cannot be set
-```
-
-Read-only is a deliberate contract, not a missing feature, and it isn't likely to be relaxed: `setenv` is not thread-safe (Rust made `std::env::set_var` `unsafe` in the 2024 edition for exactly this reason), and Garry's Mod runs Lua alongside engine threads that read the environment, so a write from Lua could tear a read anywhere else in the process. If you need a value to travel from Lua outwards, use a file or a network call, not the environment.
+`official` is a convenience for spotting a hand-built binary, not a security boundary — nothing stops a local build from setting the same environment variables CI does. [Verifying a release](#verifying-a-release) is the check that actually proves provenance.
 
 ## Editor support
 
-A [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file, [`environ.lua`](environ.lua), ships in this repository and as a release asset. It's declarations only (`---@meta`) - never `require()` it in-game. Point your editor at it instead, e.g. in `.luarc.json`:
+A [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file, [`environ.lua`](environ.lua), ships in this repository and as a release asset. It's declarations only (`---@meta`) — never `require()` it in-game. Point your editor at it instead, e.g. in `.luarc.json`:
 
 ```json
 {

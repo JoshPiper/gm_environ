@@ -1245,7 +1245,7 @@ dependencies = [
 
 [[package]]
 name = "gm_environ"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "built",
  "debug_print",
@@ -1254,9 +1254,9 @@ dependencies = [
 
 [[package]]
 name = "gmod"
-version = "17.0.0"
+version = "17.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fba999064c8149319a285441ab101b47ded87bfbd6f58c3127a3f289e4d728c2"
+checksum = "ed098caa1eefe158d739e0996d39cac5e99861b39300467a6f3a71efe8b0b721"
 dependencies = [
  "cstr",
  "gmod-macros",
@@ -1435,9 +1435,9 @@ dependencies = [
 
 [[package]]
 name = "lazy_static"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"

@@ -6,35 +6,53 @@
 -- require()'d in-game. Point your editor at it instead -- see the
 -- "Editor support" section of the README.
 
---- The environment of the host process, exposed as a read-only userdata.
+--- The environment of the running game process, exposed read-only. Any
+--- string key is looked up as an environment variable and comes back as a
+--- string, or nil if that variable isn't set:
 ---
---- Any key that isn't one of the functions below is looked up as an
---- environment variable: `environ.HOME` is the value of `$HOME`, or `nil` if
---- it isn't set. Assigning to any key raises.
+--- ```lua
+--- local home = environ.HOME -- "/home/gmod", or nil
+--- ```
 ---
---- Every function here accepts both the dot and the colon call form --
---- `environ.get_csv("X")` and `environ:get_csv("X")` are equivalent. The
---- docs use the dot form throughout.
+--- A value that isn't valid UTF-8 reads as nil too, indistinguishable from
+--- an unset variable. The four function names below are what this doesn't
+--- apply to: get_path, get_csv, get_version and get_build_info always
+--- resolve to the functions, shadowing any variable of the same name
+--- (get_csv reads such a variable, if needed).
 ---
+--- Assigning to any key raises a Lua error -- environment variables cannot
+--- be set from Lua. It's a userdata rather than a table, so it can't be
+--- iterated with pairs() either: there is no way to list every variable,
+--- only to ask for one by name.
 --- @class environ
---- @field [string] string? # The named environment variable, or nil if unset.
+--- @field [string] string? # nil if the variable isn't set
 environ = {}
 
---- Returns `PATH` split on the platform's path separator (`:` on Unix, `;`
---- on Windows), with entries trimmed and blanks dropped. Never raises --
---- returns an empty table if `PATH` is unset.
+-- Both call forms reach the same code -- the module works out whether the
+-- key landed in slot 1 (a dot call) or slot 2 (a colon call) -- so each
+-- function below carries a colon-call overload alongside the dot-call
+-- signature it's declared with. Prefer the dot form.
+
+--- Returns PATH split into its component directories, using the host's
+--- separator (";" on Windows, ":" everywhere else). Entries are trimmed and
+--- empty ones dropped, so the result is always a dense array of non-empty
+--- strings. Returns an empty table (never raises) if PATH isn't set.
 --- @return string[]
+--- @overload fun(self: environ): string[]
 function environ.get_path() end
 
---- Returns the named environment variable split on commas, with entries
---- trimmed and blanks dropped. Never raises -- returns an empty table if the
---- variable is unset.
---- @param key string # Name of the environment variable to read.
+--- Returns the named variable split on commas, with each entry trimmed and
+--- empty ones dropped. Returns an empty table if the variable isn't set --
+--- indistinguishable from one set to "" or to ",,,". Raises only if key
+--- isn't a string.
+--- @param key string
 --- @return string[]
+--- @overload fun(self: environ, key: string): string[]
 function environ.get_csv(key) end
 
---- Returns the module's own version, e.g. "0.4.1".
+--- Returns the module's own version, e.g. "0.4.2".
 --- @return string
+--- @overload fun(self: environ): string
 function environ.get_version() end
 
 --- @class EnvironBuildInfo
@@ -51,7 +69,8 @@ function environ.get_version() end
 --- @field run_url string # empty outside of GitHub Actions
 
 --- Returns build provenance for the running binary. See the README's
---- "Verifying a release" section before trusting `official`, `commit`,
---- or `run_url` for anything security-sensitive.
+--- "Verifying a release" section before trusting `official`, `commit`, or
+--- `run_url` for anything security-sensitive.
 --- @return EnvironBuildInfo
+--- @overload fun(self: environ): EnvironBuildInfo
 function environ.get_build_info() end
