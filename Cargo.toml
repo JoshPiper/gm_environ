@@ -1,6 +1,6 @@
 [package]
 name = "gm_environ"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2021"
 description = "Garry's Mod binary module exposing environment variables to Lua"
 license = "MIT"
