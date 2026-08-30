@@ -37,6 +37,19 @@ return {
             end
         },
         {
+            name = "Splits, trims and compacts a CSV env var into its exact entries",
+            func = function()
+                -- CI sets EXTRA_STARTUP_ARGS to "foo, bar ,,baz" (see
+                -- ci.yml) specifically so this test has a known,
+                -- comma-bearing value to split -- PATH never contains a
+                -- comma, so asserting against it (as the other CSV tests
+                -- here do) never actually exercises splitting on ",".
+                local parts = environ.get_csv( "EXTRA_STARTUP_ARGS" )
+
+                expect( parts ).to.deepEqual( { "foo", "bar", "baz" } )
+            end
+        },
+        {
             name = "Splits PATH into its component directories",
             func = function()
                 local parts = environ.get_path()
