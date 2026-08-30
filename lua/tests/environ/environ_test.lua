@@ -149,5 +149,26 @@ return {
                 expect( info.target:find( "linux", 1, true ) ).to.exist()
             end
         },
+        {
+            name = "Hides the real metatable behind __metatable",
+            func = function()
+                -- getmetatable() must never hand back the live table: doing
+                -- so would let any addon overwrite __index/__newindex and
+                -- silently break the read-only, real-environment contract
+                -- for everyone else.
+                expect( getmetatable( environ ) ).to.equal( false )
+            end
+        },
+        {
+            name = "Refuses to let Lua replace the environ metatable",
+            func = function()
+                expect( function()
+                    setmetatable( environ, {} )
+                end ).to.err()
+
+                -- The lock must actually hold: reads still resolve as before.
+                expect( environ.PATH ).to.beA( "string" )
+            end
+        },
     }
 }
