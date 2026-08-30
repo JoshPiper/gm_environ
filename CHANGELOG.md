@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0](https://github.com/JoshPiper/gm_environ/compare/v0.4.2...v0.5.0) - 2026-08-30
+
+### Other
+
+- [**breaking**] Document case-based namespace reservation. ([#10](https://github.com/JoshPiper/gm_environ/pull/10))
+- Apply gm_sysinfo's lessons: build provenance, API docs, and LuaLS definitions ([#8](https://github.com/JoshPiper/gm_environ/pull/8))
+
 ## [0.4.2](https://github.com/JoshPiper/gm_environ/compare/v0.4.1...v0.4.2) - 2026-08-25
 
 ### Other
