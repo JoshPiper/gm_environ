@@ -57,6 +57,7 @@ An [LuaLS](https://github.com/LuaLS/lua-language-server) type definition file is
 - **Nothing raises for a missing variable.** An unset variable reads as `nil`, and the splitters return an empty table for one, so `pcall` isn't needed around any of this. The flip side is that "unset" and "set to an empty value" are indistinguishable through `get_path()` and `get_csv()`.
 - **Values are read fresh on every access**, not captured when the module loads. In practice the environment a process inherited doesn't change while it runs, so this rarely matters.
 - **Both call forms work.** `environ.get_csv("PATH")` and `environ:get_csv("PATH")` are equivalent — the module works out which argument slot the key landed in. The dot form is used throughout this document.
+- **Names are reserved by case.** Lowercase names belong to the module: `get_path`, `get_csv` and the rest live there, and future releases may add more, so a lowercase environment variable isn't guaranteed to stay reachable by index. UPPERCASE names belong to the environment and the module will never claim one — `environ.PATH` is safe from any version of this module. Mixed-case names are reserved by neither; they resolve as environment variables today, but that isn't a promise.
 
 ## API Reference
 
