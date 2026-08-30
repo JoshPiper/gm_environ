@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.0](https://github.com/JoshPiper/gm_environ/compare/v0.4.2...v0.5.0) - 2026-08-30
+## [1.0.0](https://github.com/JoshPiper/gm_environ/compare/v0.4.2...v1.0.0) - 2026-08-30
 
 ### Other
 
