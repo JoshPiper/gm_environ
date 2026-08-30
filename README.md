@@ -31,6 +31,9 @@ Download a copy of the module from the [releases](https://github.com/JoshPiper/g
 
 Server realm exposes the module to server-side Lua; client realm exposes it to the client console/menu. Install whichever (or both) your use case needs.
 
+> [!WARNING]
+> Installing the **client** realm module lets any server you join read your local environment variables through clientside Lua the server sends you — there's no prompt, and no way for you to tell it happened. `require("environ")` doesn't enumerate variables, but a script can still request specific ones by name (`USERNAME`, `COMPUTERNAME`, `PATH`, API keys, tokens, anything else you keep in your environment), and env vars often hold credentials. Only install `gmcl_environ` if you understand and accept that every server you join afterwards gets this ability. The server realm has no such exposure to other players — it only reaches the server's own environment.
+
 On macOS, downloaded files carry the quarantine attribute and may be blocked from loading; clear it with `xattr -d com.apple.quarantine <file>`.
 
 ## Usage
