@@ -28,6 +28,8 @@ Include, if you can:
 
 Worth noting up front: this module deliberately exposes the host process's environment to Lua, so a server's own environment variables being readable by Lua running on that server is the feature, not a vulnerability. Something that reads them from a realm that shouldn't have them, or that escapes the read-only contract, is.
 
+**This includes the client realm working as designed.** If you've installed `gmcl_environ`, any server you join can send clientside Lua that calls `require("environ")` and reads your environment variables by name — there's no enumeration, but a targeted read of `USERNAME`, `COMPUTERNAME`, `PATH`, or a variable holding a credential works exactly as intended. That's a real exposure to informed consent, not a bug in this module, and it's called out in the [README](README.md#installation) so players can decide whether to install the client module at all. Don't file it as a vulnerability; if you think the *server* realm is reachable from clientside Lua, or vice versa, that's a realm-boundary bug and is in scope.
+
 ---
 
 ## Scope
