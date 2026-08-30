@@ -250,6 +250,14 @@ unsafe fn gmod13_open(lua: State) -> i32 {
     export!(newindex, "__newindex");
     export!("environ", "__name");
 
+    // Lock the metatable: getmetatable(environ) returns `false` instead of
+    // the real table, and setmetatable(environ, ...) errors. Without this,
+    // any addon could reach in and rewrite __index/__newindex, silently
+    // breaking the read-only and real-environment guarantees for everyone
+    // else on the server.
+    lua.push_boolean(false);
+    lua.set_field(-2, lua_string!("__metatable"));
+
     // Set and pop the metatable.
     lua.new_userdata(0, Some(-1));
 
