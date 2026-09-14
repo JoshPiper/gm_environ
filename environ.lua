@@ -45,6 +45,10 @@ function environ.get_path() end
 --- empty ones dropped. Returns an empty table if the variable isn't set --
 --- indistinguishable from one set to "" or to ",,,". Raises only if key
 --- isn't a string.
+---
+--- Every comma splits, quoted or not: this isn't RFC 4180 CSV. If your
+--- values need commas in them, use a separator that can't appear in any
+--- entry, or read environ.<NAME> and parse it yourself.
 --- @param key string
 --- @return string[]
 --- @overload fun(self: environ, key: string): string[]
