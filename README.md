@@ -98,7 +98,7 @@ Returns the variable named `key` split on commas, trimmed and compacted the same
 local addons = environ.get_csv("MY_ADDONS") -- { "foo", "bar", "baz" }
 ```
 
-Splitting is unconditional and has no escape syntax: this is a plain separated list, not [RFC 4180](https://www.rfc-editor.org/rfc/rfc4180) CSV, so a value containing a quoted comma splits on that comma too.
+Splitting is unconditional and has no escape syntax: this is a plain separated list, not [RFC 4180](https://www.rfc-editor.org/rfc/rfc4180) CSV, so a value containing a quoted comma splits on that comma too. If your values need commas in them, separate the list with a character that can't appear in any entry, or read the whole string with `environ.<NAME>` and parse it yourself.
 
 ### `environ.get_version(): string`
 

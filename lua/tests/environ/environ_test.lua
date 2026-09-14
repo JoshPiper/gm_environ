@@ -39,14 +39,27 @@ return {
         {
             name = "Splits, trims and compacts a CSV env var into its exact entries",
             func = function()
-                -- CI sets EXTRA_STARTUP_ARGS to "foo, bar ,,baz" (see
+                -- CI sets GM_ENVIRON_TEST_CSV to "foo, bar ,,baz" (see
                 -- ci.yml) specifically so this test has a known,
                 -- comma-bearing value to split -- PATH never contains a
                 -- comma, so asserting against it (as the other CSV tests
                 -- here do) never actually exercises splitting on ",".
-                local parts = environ.get_csv( "EXTRA_STARTUP_ARGS" )
+                local parts = environ.get_csv( "GM_ENVIRON_TEST_CSV" )
 
                 expect( parts ).to.deepEqual( { "foo", "bar", "baz" } )
+            end
+        },
+        {
+            name = "Splits a CSV env var on every comma, quoted or not",
+            func = function()
+                -- get_csv is a plain separated list, not RFC 4180 CSV:
+                -- quotes are ordinary characters and stay in the entries.
+                -- That's documented, and was kept deliberately in #7, so
+                -- this should only ever change on purpose. CI sets
+                -- GM_ENVIRON_TEST_QUOTED_CSV to 'foo,"bar,baz",qux'.
+                local parts = environ.get_csv( "GM_ENVIRON_TEST_QUOTED_CSV" )
+
+                expect( parts ).to.deepEqual( { "foo", "\"bar", "baz\"", "qux" } )
             end
         },
         {

@@ -48,14 +48,21 @@ jobs:
       download-artifact: gmsv_environ_linux64.dll
       # additional-setup runs on the Actions runner, not inside the test
       # container, so it can't export a variable the server process would
-      # see. extra-startup-args is forwarded to the container as the real
-      # EXTRA_STARTUP_ARGS env var, so it doubles as the one lever we have
-      # for getting a known, comma-bearing value into the container's
-      # environment for get_csv() to read.
-      extra-startup-args: "foo, bar ,,baz"
+      # see. It does run after GLuaTest is cloned into gluatest/ and before
+      # that clone's `docker compose up`, though, and compose merges a
+      # docker-compose.override.yml sitting next to docker-compose.yml. So
+      # we write one there to put known values into the container's
+      # environment for the get_csv() tests to read.
       additional-setup: |
         mkdir -p "$GITHUB_WORKSPACE/garrysmod_override/lua/bin"
         cp "$GITHUB_WORKSPACE/gluatest/docker/_gluatest_artifacts/gmsv_environ_linux64.dll" "$GITHUB_WORKSPACE/garrysmod_override/lua/bin/"
+        cat > "$GITHUB_WORKSPACE/gluatest/docker/docker-compose.override.yml" <<'EOF'
+        services:
+          runner:
+            environment:
+              - 'GM_ENVIRON_TEST_CSV=foo, bar ,,baz'
+              - 'GM_ENVIRON_TEST_QUOTED_CSV=foo,"bar,baz",qux'
+        EOF
 
   test-linux32:
     name: GluaTest (main branch)
@@ -63,8 +70,14 @@ jobs:
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       download-artifact: gmsv_environ_linux.dll
-      # See the x86-64 job above for why extra-startup-args is (ab)used here.
-      extra-startup-args: "foo, bar ,,baz"
+      # See the x86-64 job above for why additional-setup writes a compose override.
       additional-setup: |
         mkdir -p "$GITHUB_WORKSPACE/garrysmod_override/lua/bin"
         cp "$GITHUB_WORKSPACE/gluatest/docker/_gluatest_artifacts/gmsv_environ_linux.dll" "$GITHUB_WORKSPACE/garrysmod_override/lua/bin/"
+        cat > "$GITHUB_WORKSPACE/gluatest/docker/docker-compose.override.yml" <<'EOF'
+        services:
+          runner:
+            environment:
+              - 'GM_ENVIRON_TEST_CSV=foo, bar ,,baz'
+              - 'GM_ENVIRON_TEST_QUOTED_CSV=foo,"bar,baz",qux'
+        EOF
